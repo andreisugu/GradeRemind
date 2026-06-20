@@ -52,6 +52,12 @@ Aplicația include și un **dashboard web local** cu autentificare, unde poți v
 - Un cont activ pe portalul academic țintă
 - *(Opțional)* Un webhook Discord pentru notificări
 
+### Cerințe de resurse (RAM)
+GradeRemind este o aplicație extrem de ușoară și eficientă, având un consum neglijabil de memorie:
+- **Rulare nativă (pe calculator/server):** ~30 – 45 MB RAM.
+- **Docker (utilizare directă):** ~35 – 50 MB RAM.
+- **Pterodactyl / Pelican Panel:** Se recomandă alocarea a **128 MB RAM** pentru funcționarea stabilă. *Notă importantă:* În timpul instalării sau reinstalării, managerul de pachete `pip` poate înregistra vârfuri temporare de consum de până la ~150 MB RAM. Dacă procesul de instalare se oprește din lipsă de memorie (OOM), alocați temporar **256 MB RAM** în panou, apoi reduceți limita înapoi la 128 MB după finalizare.
+
 ---
 
 ## 🚀 Instalare
