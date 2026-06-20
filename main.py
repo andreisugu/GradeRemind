@@ -4,6 +4,7 @@ import time
 import random
 from dotenv import load_dotenv
 
+from src import __version__
 from src.config import Config
 from src.services import (
     GradePortalWebClient,
@@ -12,7 +13,8 @@ from src.services import (
     TextFileGradeLogger,
     CompositeNotificationProvider,
     ConsoleNotificationProvider,
-    DiscordNotificationProvider
+    DiscordNotificationProvider,
+    GitHubUpdateChecker
 )
 from src.monitor import GradeMonitor
 from src.web_server import BuiltInGradeWebServer, get_template
@@ -36,6 +38,17 @@ load_dotenv()
 def main() -> None:
     print("🚀 Botul de monitorizare note GradeRemind a pornit.")
     
+    # Check for updates (non-blocking)
+    try:
+        update_checker = GitHubUpdateChecker(__version__)
+        update_info = update_checker.check_for_updates()
+        if update_info:
+            print(f"\n📦 ACTUALIZARE DISPONIBILĂ: v{update_info['version']}")
+            print(f"   Link: {update_info['url']}")
+            print("   Relanșează pentru a aplica.\n")
+    except Exception:
+        pass
+
     # Instanțiere dependencies
     config = Config()
     

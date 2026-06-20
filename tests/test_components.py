@@ -1,6 +1,6 @@
 import unittest
-from unittest.mock import MagicMock
-from src.services import CompositeNotificationProvider, GradePortalHtmlParser, TextFileGradeLogger
+from unittest.mock import MagicMock, patch
+from src.services import CompositeNotificationProvider, GradePortalHtmlParser, TextFileGradeLogger, GitHubUpdateChecker
 from src.interfaces import INotificationProvider
 
 class TestGradeRemindComponents(unittest.TestCase):
@@ -56,6 +56,64 @@ class TestGradeRemindComponents(unittest.TestCase):
             self.assertEqual(content, "")  # Ar trebui să fie gol
         finally:
             os.unlink(log_file)
+
+    @patch('src.services.requests.get')
+    def test_update_checker_newer_version(self, mock_get) -> None:
+        """ Testează că se detectează o versiune mai nouă disponibilă """
+        # Arrange
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "tag_name": "v1.1.0",
+            "html_url": "https://github.com/andreisugu/GradeRemind/releases/tag/v1.1.0",
+            "body": "Noutati in v1.1.0"
+        }
+        mock_get.return_value = mock_response
+        
+        checker = GitHubUpdateChecker(current_version="1.0.0")
+        
+        # Act
+        update = checker.check_for_updates()
+        
+        # Assert
+        self.assertIsNotNone(update)
+        self.assertEqual(update["version"], "1.1.0")
+        self.assertEqual(update["url"], "https://github.com/andreisugu/GradeRemind/releases/tag/v1.1.0")
+
+    @patch('src.services.requests.get')
+    def test_update_checker_no_update_needed(self, mock_get) -> None:
+        """ Testează că nu se semnalează actualizare dacă versiunea curentă este egală sau mai mare """
+        # Arrange
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "tag_name": "v1.0.0",
+            "html_url": "https://github.com/andreisugu/GradeRemind/releases/tag/v1.0.0",
+            "body": ""
+        }
+        mock_get.return_value = mock_response
+        
+        checker = GitHubUpdateChecker(current_version="1.0.0")
+        
+        # Act
+        update = checker.check_for_updates()
+        
+        # Assert
+        self.assertIsNone(update)
+
+    @patch('src.services.requests.get')
+    def test_update_checker_failure_graceful(self, mock_get) -> None:
+        """ Testează că erorile de rețea la verificarea actualizărilor sunt tratate silențios """
+        # Arrange
+        mock_get.side_effect = Exception("Conexiune esuata")
+        
+        checker = GitHubUpdateChecker(current_version="1.0.0")
+        
+        # Act
+        update = checker.check_for_updates()
+        
+        # Assert
+        self.assertIsNone(update)
 
 if __name__ == "__main__":
     unittest.main()

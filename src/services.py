@@ -297,3 +297,51 @@ class GradePortalWebClient(IWebClient):
     def fetch_dashboard(self) -> str:
         r = self.session.get(self._config.dashboard_url, timeout=15)
         return r.text
+
+
+class GitHubUpdateChecker:
+    """Checks for new GradeRemind releases on GitHub"""
+    
+    def __init__(self, current_version: str, owner: str = "andreisugu", repo: str = "GradeRemind"):
+        self.current_version = current_version
+        self.owner = owner
+        self.repo = repo
+    
+    def check_for_updates(self) -> Optional[Dict[str, str]]:
+        """
+        Checks GitHub releases API for newer version.
+        Returns: {version: "x.y.z", url: "https://github.com/..."} or None
+        """
+        try:
+            response = requests.get(
+                f"https://api.github.com/repos/{self.owner}/{self.repo}/releases/latest",
+                headers={"User-Agent": "GradeRemind-Update-Checker"},
+                timeout=5
+            )
+            if response.status_code == 200:
+                latest = response.json()
+                latest_version = latest["tag_name"].lstrip("v")
+                
+                if self._is_newer(latest_version):
+                    return {
+                        "version": latest_version,
+                        "url": latest["html_url"],
+                        "notes": latest.get("body", "")
+                    }
+        except Exception:
+            # Silently fail - don't block startup
+            pass
+        return None
+    
+    def _is_newer(self, other: str) -> bool:
+        """Compare semantic versions: current < other?"""
+        try:
+            current_parts = list(map(int, self.current_version.split(".")))
+            other_parts = list(map(int, other.split(".")))
+            max_len = max(len(current_parts), len(other_parts))
+            current_parts.extend([0] * (max_len - len(current_parts)))
+            other_parts.extend([0] * (max_len - len(other_parts)))
+            return tuple(other_parts) > tuple(current_parts)
+        except Exception:
+            return False
+
