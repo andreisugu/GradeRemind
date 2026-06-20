@@ -33,7 +33,7 @@
       "name": "Git Repository URL",
       "description": "Full HTTPS URL of the GradeRemind repository to clone during installation. Change this if you have forked the project.",
       "env_variable": "GIT_REPO",
-      "default_value": "https://github.com/USERNAME/GradeRemind",
+      "default_value": "https://github.com/andreisugu/GradeRemind",
       "user_viewable": true,
       "user_editable": true,
       "rules": "required|string",
