@@ -128,5 +128,20 @@ class TestGradeRemindComponents(unittest.TestCase):
         is_jpeg = icon_bytes[:2] == b'\xff\xd8'
         self.assertTrue(is_png or is_jpeg)
 
+    def test_egg_json_syntax(self) -> None:
+        """ Testează că fișierele de configurare egg pentru Pelican și Pterodactyl sunt JSON valid """
+        import json
+        
+        pelican_path = "eggs/egg-graderemind-pelican.json"
+        pterodactyl_path = "eggs/egg-graderemind-pterodactyl.json"
+        
+        with open(pelican_path, "r", encoding="utf-8") as f:
+            pelican_data = json.load(f)
+        with open(pterodactyl_path, "r", encoding="utf-8") as f:
+            pterodactyl_data = json.load(f)
+            
+        self.assertEqual(pelican_data["name"], "Academic Grade Monitor")
+        self.assertEqual(pterodactyl_data["name"], "Academic Grade Monitor")
+
 if __name__ == "__main__":
     unittest.main()

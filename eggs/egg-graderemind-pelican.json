@@ -132,7 +132,7 @@
     {
       "name": "Max Check Interval (seconds)",
       "description": "Maximum number of seconds to wait between automatic grade checks. A random value between Min and Max is picked each time.",
-      "env_variable": "PORTAL_MAX_VERIFICATION_INTERVAL",,
+      "env_variable": "PORTAL_MAX_VERIFICATION_INTERVAL",
       "default_value": "5400",
       "user_viewable": true,
       "user_editable": true,
@@ -175,8 +175,17 @@
       "env_variable": "PORTAL_DASHBOARD_PATH",
       "default_value": "/parcurs/dashboard.php",
       "user_viewable": true,
-      "user_editable": true,
       "rules": "required|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal User Agent",
+      "description": "Real browser User-Agent to mimic normal browser traffic and prevent detection/firewall blocks. Example: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ...",
+      "env_variable": "PORTAL_USER_AGENT",
+      "default_value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
       "field_type": "text"
     }
   ]
