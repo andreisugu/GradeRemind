@@ -103,9 +103,6 @@ class GradeMonitor:
             print("⚠️ Nu s-au găsit note în pagină. Structura portalului s-a schimbat. HTML-ul paginii a fost salvat în 'debug_page.html'.")
             return
 
-        # Salvare istoric în fișierul de log
-        self.logger.log(note_noi)
-
         # Citire istoric precedent
         note_vechi = self.storage.load_history()
         
@@ -121,6 +118,7 @@ class GradeMonitor:
             return
 
         modificari_detectate = False
+        modificari_log = {}  # Structură pentru logging doar schimburi
         now = time.time()
         
         # Comparăm notele
@@ -140,11 +138,30 @@ class GradeMonitor:
                         info["last_modified"] = now
                         self.notifier.notify(mat, info["grade"])
                         modificari_detectate = True
+                        if an not in modificari_log:
+                            modificari_log[an] = {}
+                        if sem not in modificari_log[an]:
+                            modificari_log[an][sem] = {}
+                        modificari_log[an][sem][mat] = {
+                            'type': 'new',
+                            'grade': info["grade"],
+                            'date': info.get('date', '')
+                        }
                     elif vechea_nota != info["grade"]:
                         # Modificare notă
                         info["last_modified"] = now
                         self.notifier.notify(mat, info["grade"])
                         modificari_detectate = True
+                        if an not in modificari_log:
+                            modificari_log[an] = {}
+                        if sem not in modificari_log[an]:
+                            modificari_log[an][sem] = {}
+                        modificari_log[an][sem][mat] = {
+                            'type': 'modified',
+                            'old_grade': vechea_nota,
+                            'grade': info["grade"],
+                            'date': info.get('date', '')
+                        }
                     else:
                         # Nicio modificare
                         if vechi_timestamp == 0.0:
@@ -154,6 +171,10 @@ class GradeMonitor:
                             info["last_modified"] = vechi_timestamp
 
         if modificari_detectate:
+            self.logger.log_changes(modificari_log)
             self.storage.save_history(note_noi)
+            timestamp = time.strftime('%H:%M:%S')
+            print(f"[{timestamp}] ✅ Verificări finalizate. Modificări detectate și loggate.")
         else:
-            print("✅ Verificare reușită. Nicio notă nouă adăugată.")
+            timestamp = time.strftime('%H:%M:%S')
+            print(f"[{timestamp}] ✅ Verificare reușită. Nicio notă nouă sau modificată.")

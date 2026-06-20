@@ -58,23 +58,32 @@ class CompositeNotificationProvider(INotificationProvider):
 
 
 class TextFileGradeLogger(IGradeLogger):
-    """ Implementare concretă care adaugă notele curente în fișier local text (LSP) """
+    """ Implementare concretă care înregistrează doar modificările în fișier text (LSP) """
     
     def __init__(self, log_file: str) -> None:
         self.log_file: str = log_file
 
-    def log(self, grades: Dict) -> None:
+    def log_changes(self, changes: Dict) -> None:
+        """Logheaț doar modificările (note noi sau actualizate) în stil git: timestamp + lista schimburi"""
+        if not changes:  # Dacă nu sunt modificări, nu scriem nimic
+            return
+        
         timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
         try:
             with open(self.log_file, 'a', encoding='utf-8') as f:
-                f.write(f"--- VERIFICARE LA DATE/TIME: {timestamp} ---\n")
-                for an, semestre in sorted(grades.items(), reverse=True):
-                    f.write(f"{an}\n")
+                f.write(f"[{timestamp}] MODIFICĂRI DETECTATE:\n")
+                for an, semestre in sorted(changes.items(), reverse=True):
                     for sem, materii in sorted(semestre.items()):
-                        f.write(f"  {sem}\n")
-                        for mat, info in sorted(materii.items()):
-                            date_val = info.get('date', '')
-                            f.write(f"    {mat} - {date_val} - {info['grade']}\n")
+                        for mat, change_info in sorted(materii.items()):
+                            change_type = change_info.get('type', 'unknown')
+                            grade_val = change_info.get('grade', 'N/A')
+                            date_val = change_info.get('date', '')
+                            
+                            if change_type == 'new':
+                                f.write(f"  ✅ [NOU] {an} / {sem} / {mat} = {grade_val} ({date_val})\n")
+                            elif change_type == 'modified':
+                                old_grade = change_info.get('old_grade', '?')
+                                f.write(f"  🗑️ [MODIFICAT] {an} / {sem} / {mat}: {old_grade} → {grade_val} ({date_val})\n")
                 f.write("\n")
         except Exception as e:
             print(f"❌ Eroare la scrierea în fișierul de log: {e}")

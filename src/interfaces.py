@@ -15,8 +15,8 @@ class IGradeLogger(ABC):
     """ Interfață pentru jurnalizarea activității / notelor curente (ISP, DIP) """
     
     @abstractmethod
-    def log(self, grades: Dict) -> None:
-        """ Jurnalizează notele într-un fișier local """
+    def log_changes(self, changes: Dict) -> None:
+        """ Jurnalizează doar modificările detectate (note noi sau actualizate) """
         pass
 
 

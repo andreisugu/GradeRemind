@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from src.services import CompositeNotificationProvider, GradePortalHtmlParser
+from src.services import CompositeNotificationProvider, GradePortalHtmlParser, TextFileGradeLogger
 from src.interfaces import INotificationProvider
 
 class TestGradeRemindComponents(unittest.TestCase):
@@ -33,6 +33,29 @@ class TestGradeRemindComponents(unittest.TestCase):
         
         # Assert
         self.assertEqual(grades, {})
+    
+    def test_grade_logger_only_logs_changes(self) -> None:
+        """ Testează că logger-ul nu scrie nimic când nu sunt modificări """
+        import tempfile
+        import os
+        
+        # Arrange
+        with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as f:
+            log_file = f.name
+        
+        try:
+            logger = TextFileGradeLogger(log_file)
+            empty_changes = {}  # Nicio modificăre
+            
+            # Act
+            logger.log_changes(empty_changes)
+            
+            # Assert
+            with open(log_file, 'r', encoding='utf-8') as f:
+                content = f.read()
+            self.assertEqual(content, "")  # Ar trebui să fie gol
+        finally:
+            os.unlink(log_file)
 
 if __name__ == "__main__":
     unittest.main()
