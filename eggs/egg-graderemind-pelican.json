@@ -1,0 +1,183 @@
+{
+  "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PELICAN PANEL",
+  "meta": {
+    "version": "PLCN_v1",
+    "update_url": null
+  },
+  "exported_at": "2026-06-20T21:01:00+03:00",
+  "name": "Academic Grade Monitor",
+  "author": "academic-monitor@example.com",
+  "description": "Generic academic portal grade monitor. Polls a student portal for new or changed grades at randomised intervals and fires Discord Webhook alerts. Ships a local web dashboard with session authentication, a live countdown timer, and grade statistics. Adapt PORTAL_* variables for any compatible portal.",
+  "features": [],
+  "docker_images": {
+    "Python 3.12": "ghcr.io/pterodactyl/yolks:python_3.12",
+    "Python 3.11": "ghcr.io/pterodactyl/yolks:python_3.11"
+  },
+  "file_denylist": [],
+  "startup": ".venv/bin/python main.py",
+  "config": {
+    "files": "{}",
+    "startup": "{\"done\": \"Serverul Web Dashboard a pornit pe\"}",
+    "logs": "{}",
+    "stop": "^C"
+  },
+  "scripts": {
+    "installation": {
+      "script": "#!/bin/bash\n# =================================================================\n# GradeRemind — Pelican Installation Script\n# Installer container : ghcr.io/pelican-eggs/installers:alpine\n# Server directory    : /mnt/server\n# =================================================================\n\nset -e  # Abort on first error\n\ncd /mnt/server\n\n# -----------------------------------------------------------------\n# 1. System dependencies\n#    The installer image is Alpine-based; use apk.\n# -----------------------------------------------------------------\necho \"[1/4] Installing system dependencies...\"\napk add --no-cache git curl python3 py3-pip > /dev/null 2>&1\necho \"      Done.\"\n\n# -----------------------------------------------------------------\n# 2. Clone or update the application repository\n# -----------------------------------------------------------------\nif [ -d \".git\" ]; then\n    echo \"[2/4] Existing repository found. Updating to branch '${BRANCH}'...\"\n    git remote set-url origin \"${GIT_REPO}\"\n    git fetch --all --prune\n    git reset --hard \"origin/${BRANCH}\"\nelse\n    echo \"[2/4] Cloning ${GIT_REPO} (branch: ${BRANCH})...\"\n    git clone --depth=1 --branch \"${BRANCH}\" \"${GIT_REPO}\" .\nfi\necho \"      Done.\"\n\n# -----------------------------------------------------------------\n# 3. Create a Python virtual environment inside /mnt/server\n#    Storing the venv here means pip packages persist across\n#    container restarts — the runtime yolk image itself is ephemeral.\n# -----------------------------------------------------------------\necho \"[3/4] Creating Python virtual environment (.venv)...\"\npython3 -m venv .venv\nsource .venv/bin/activate\necho \"      Done.\"\n\n# -----------------------------------------------------------------\n# 4. Install Python dependencies\n# -----------------------------------------------------------------\necho \"[4/4] Installing Python packages from requirements.txt...\"\npip install --no-cache-dir --upgrade pip --quiet\npip install --no-cache-dir -r requirements.txt --quiet\necho \"      Done.\"\n\necho \"\"\necho \"========================================================\"\necho \" GradeRemind installation complete!\"\necho \" Configure the environment variables in the panel,\"\necho \" then click Start to begin monitoring your grades.\"\necho \"========================================================\"\n",
+      "container": "ghcr.io/pelican-eggs/installers:alpine",
+      "entrypoint": "bash"
+    }
+  },
+  "variables": [
+    {
+      "name": "Git Repository URL",
+      "description": "Full HTTPS URL of the GradeRemind repository to clone during installation. Change this if you have forked the project.",
+      "env_variable": "GIT_REPO",
+      "default_value": "https://github.com/USERNAME/GradeRemind",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Git Branch",
+      "description": "The git branch to clone and run. Use 'main' for stable releases.",
+      "env_variable": "BRANCH",
+      "default_value": "main",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|alpha_dash",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal Username",
+      "description": "Your portal login — either your institutional e-mail address or your CNP (national ID number).",
+      "env_variable": "PORTAL_UTILIZATOR",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal Password",
+      "description": "Your portal account password. Stored as a panel secret — never logged or exposed in the UI.",
+      "env_variable": "PORTAL_PAROLA",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "password"
+    },
+    {
+      "name": "Portal Role",
+      "description": "Account role identifier. Use 0 for standard student accounts.",
+      "env_variable": "PORTAL_ROLA",
+      "default_value": "0",
+      "user_viewable": true,
+      "user_editable": false,
+      "rules": "required|integer",
+      "field_type": "text"
+    },
+    {
+      "name": "Dashboard Port",
+      "description": "The port the web dashboard listens on inside the container. Must match your panel allocation.",
+      "env_variable": "PORTAL_PORT",
+      "default_value": "5000",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:1024|max:65535",
+      "field_type": "text"
+    },
+    {
+      "name": "Discord Webhook URL",
+      "description": "Full Discord Webhook URL for grade-change notifications. Leave blank to disable Discord alerts.",
+      "env_variable": "PORTAL_DISCORD_WEBHOOK",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Check on Startup",
+      "description": "Set to 'true' to run a grade check immediately when the server starts instead of waiting for the first interval. Useful after a restart.",
+      "env_variable": "PORTAL_INITIAL_CHECK",
+      "default_value": "false",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string|in:true,false",
+      "field_type": "text"
+    },
+    {
+      "name": "Active Hours",
+      "description": "Restrict monitoring to a specific time window (24-hour format). Format: 'start-end', e.g. '6-23'. Leave blank for 24/7 monitoring.",
+      "env_variable": "PORTAL_ACTIVE_HOURS",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Min Check Interval (seconds)",
+      "description": "Minimum number of seconds to wait between automatic grade checks. Must be less than or equal to the maximum interval.",
+      "env_variable": "PORTAL_MIN_VERIFICATION_INTERVAL",
+      "default_value": "1800",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:60",
+      "field_type": "text"
+    },
+    {
+      "name": "Max Check Interval (seconds)",
+      "description": "Maximum number of seconds to wait between automatic grade checks. A random value between Min and Max is picked each time.",
+      "env_variable": "PORTAL_MAX_VERIFICATION_INTERVAL",,
+      "default_value": "5400",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|integer|min:60",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal Base URL",
+      "description": "Base URL of the academic portal (no trailing slash). Example: https://your-university-portal.com",
+      "env_variable": "PORTAL_BASE_URL",
+      "default_value": "https://your-portal.example.com",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal Login Path",
+      "description": "URL path for the portal login page.",
+      "env_variable": "PORTAL_LOGIN_PATH",
+      "default_value": "/login.php",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal API Path",
+      "description": "URL path for the portal authentication API endpoint.",
+      "env_variable": "PORTAL_API_PATH",
+      "default_value": "/api/ver_user.json.php",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Portal Dashboard Path",
+      "description": "URL path for the academic dashboard page that contains grade data.",
+      "env_variable": "PORTAL_DASHBOARD_PATH",
+      "default_value": "/parcurs/dashboard.php",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "required|string",
+      "field_type": "text"
+    }
+  ]
+}

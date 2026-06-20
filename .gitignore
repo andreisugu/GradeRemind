@@ -1,0 +1,33 @@
+# Fișiere sensibile — nu se includ în repository!
+.env
+sessions.json
+
+# Date generate automat de aplicație
+note_salvate.json
+note_log.txt
+debug_page.html
+dashboard_page_raw.html
+dashboard_real.html
+
+# Cache Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Mediu virtual
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+
+# Docker — volume data (dacă faci bind-mount local în loc de named volume)
+.docker-data/

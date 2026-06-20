@@ -1,0 +1,290 @@
+import os
+import json
+import time
+import re
+import requests
+from bs4 import BeautifulSoup
+from typing import Dict, Optional, List
+
+from src.config import Config
+from src.interfaces import (
+    INotificationProvider,
+    IGradeLogger,
+    IGradeStorage,
+    IGradeParser,
+    IWebClient
+)
+
+class ConsoleNotificationProvider(INotificationProvider):
+    """ Implementare concretă care afișează alertele în consolă (LSP) """
+    
+    def notify(self, subject: str, grade: str) -> None:
+        print(f"🔔 NOTIFICARE: S-a modificat/pus nota la '{subject}' -> Nota: {grade}!")
+
+
+class DiscordNotificationProvider(INotificationProvider):
+    """ Trimite alerte de note pe un canal de Discord via Webhook (LSP) """
+    
+    def __init__(self, webhook_url: str) -> None:
+        self.webhook_url: str = webhook_url
+
+    def notify(self, subject: str, grade: str) -> None:
+        if not self.webhook_url:
+            return
+        
+        payload = {
+            "content": f"🔔 **Notificare GradeRemind**: S-a modificat/pus nota la **{subject}** -> Nota: **{grade}**!"
+        }
+        try:
+            response = requests.post(self.webhook_url, json=payload, timeout=10)
+            if response.status_code not in [200, 204]:
+                print(f"❌ Eroare la trimiterea către Discord: status code {response.status_code}")
+        except Exception as e:
+            print(f"❌ Eroare la conexiunea cu Discord Webhook: {e}")
+
+
+class CompositeNotificationProvider(INotificationProvider):
+    """ Distribuie notificările către mai mulți provideri (LSP, OCP) """
+    
+    def __init__(self) -> None:
+        self._providers: List[INotificationProvider] = []
+
+    def add_provider(self, provider: INotificationProvider) -> None:
+        self._providers.append(provider)
+
+    def notify(self, subject: str, grade: str) -> None:
+        for provider in self._providers:
+            provider.notify(subject, grade)
+
+
+class TextFileGradeLogger(IGradeLogger):
+    """ Implementare concretă care adaugă notele curente în fișier local text (LSP) """
+    
+    def __init__(self, log_file: str) -> None:
+        self.log_file: str = log_file
+
+    def log(self, grades: Dict) -> None:
+        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        try:
+            with open(self.log_file, 'a', encoding='utf-8') as f:
+                f.write(f"--- VERIFICARE LA DATE/TIME: {timestamp} ---\n")
+                for an, semestre in sorted(grades.items(), reverse=True):
+                    f.write(f"{an}\n")
+                    for sem, materii in sorted(semestre.items()):
+                        f.write(f"  {sem}\n")
+                        for mat, info in sorted(materii.items()):
+                            date_val = info.get('date', '')
+                            f.write(f"    {mat} - {date_val} - {info['grade']}\n")
+                f.write("\n")
+        except Exception as e:
+            print(f"❌ Eroare la scrierea în fișierul de log: {e}")
+
+
+class JsonFileGradeStorage(IGradeStorage):
+    """ Implementare concretă pentru stocare persistentei în fișiere JSON (LSP) """
+    
+    def __init__(self, note_file: str) -> None:
+        self.note_file: str = note_file
+
+    def load_history(self) -> Optional[Dict]:
+        if not os.path.exists(self.note_file):
+            return None
+        try:
+            with open(self.note_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            # Detecție și auto-migrare format vechi plat
+            is_old_format = False
+            if isinstance(data, dict):
+                for k, v in data.items():
+                    if not isinstance(v, dict):
+                        is_old_format = True
+                        break
+            else:
+                is_old_format = True
+                
+            if is_old_format:
+                print("🔄 Formatul vechi al notelor a fost detectat local. Se va auto-migra la prima salvare...")
+                return None  # Îl forțăm să se rescrie în format nou
+                
+            return data
+        except Exception as e:
+            print(f"❌ Eroare la citirea istoricului local: {e}")
+            return None
+
+    def save_history(self, grades: Dict) -> None:
+        try:
+            with open(self.note_file, 'w', encoding='utf-8') as f:
+                json.dump(grades, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print(f"❌ Eroare la salvarea istoricului local: {e}")
+
+
+class GradePortalHtmlParser(IGradeParser):
+    """ Implementare concretă ce utilizează BeautifulSoup pentru a parseza structura portalului academic (LSP) """
+    
+    def parse_grades(self, html_content: str) -> Dict:
+        soup = BeautifulSoup(html_content, 'html.parser')
+        note_structurate: Dict = {}
+        
+        panels = soup.select('div.panel.panel-default')
+        for panel in panels:
+            heading_tag = panel.find('div', class_='panel-heading')
+            if not heading_tag:
+                continue
+            
+            heading_id = heading_tag.get('id', '')
+            if not heading_id or not heading_id.startswith('panelHeading'):
+                continue
+            
+            suffix = heading_id[len('panelHeading'):]
+            body_id = f'collapseHeading{suffix}'
+            body_tag = soup.find('div', id=body_id)
+            if not body_tag:
+                continue
+                
+            heading_text = heading_tag.get_text(separator=" ", strip=True)
+            year_match = re.search(r'(\d{4}\s*-\s*\d{4})', heading_text)
+            an_match = re.search(r'Anul:\s*(\d+)', heading_text)
+            
+            if year_match and an_match:
+                nume_an = f"{year_match.group(1).strip()} (Anul {an_match.group(1).strip()})"
+            elif year_match:
+                nume_an = year_match.group(1).strip()
+            else:
+                nume_an = heading_text.split(',')[0].strip()
+                
+            note_structurate[nume_an] = {}
+            
+            content_container = body_tag.find('div', class_='content-container')
+            if not content_container:
+                continue
+                
+            current_semester = "Semestrul Necunoscut"
+            for child in content_container.children:
+                if not child.name:
+                    continue
+                
+                classes = child.get('class', [])
+                if 'adm-card' not in classes:
+                    continue
+                    
+                text_complet = child.get_text(separator="||")
+                linii = [l.strip() for l in text_complet.split("||") if l.strip()]
+                
+                if "Semestrul:" in linii:
+                    try:
+                        idx_sem = linii.index("Semestrul:")
+                        sem_val = linii[idx_sem + 1]
+                        current_semester = f"Semestrul {sem_val}"
+                    except (ValueError, IndexError):
+                        current_semester = "Semestrul Necunoscut"
+                    
+                    if current_semester not in note_structurate[nume_an]:
+                        note_structurate[nume_an][current_semester] = {}
+                    continue
+                
+                if "Denumire:" in linii and "Nota:" in linii:
+                    try:
+                        idx_mat = linii.index("Denumire:")
+                        materie = linii[idx_mat + 1]
+                    except (ValueError, IndexError):
+                        continue
+                        
+                    try:
+                        idx_date = linii.index("Data examinării:")
+                        date_val = linii[idx_date + 1]
+                        if date_val == "Nota:":
+                            date_val = ""
+                    except (ValueError, IndexError):
+                        date_val = ""
+                        
+                    try:
+                        idx_nota = linii.index("Nota:")
+                        nota_val = linii[idx_nota + 1]
+                        if nota_val == "Credite:":
+                            nota_val = "Neexaminat"
+                    except (ValueError, IndexError):
+                        nota_val = "Neexaminat"
+                    
+                    if current_semester not in note_structurate[nume_an]:
+                        note_structurate[nume_an][current_semester] = {}
+                        
+                    note_structurate[nume_an][current_semester][materie] = {
+                        "date": date_val,
+                        "grade": nota_val
+                    }
+                    
+        return note_structurate
+
+
+class GradePortalWebClient(IWebClient):
+    """ Client HTTP care interacționează cu rețeaua și sesiunile portalului academic (LSP) """
+    
+    def __init__(self, config: Config) -> None:
+        self._config: Config = config
+        self.session: requests.Session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': self._config.user_agent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Origin': self._config.base_url,
+            'Referer': self._config.login_url
+        })
+
+    @property
+    def config(self) -> Config:
+        return self._config
+
+    def authenticate(self) -> bool:
+        # Pasul 1: Inițializăm session/cookie accesând pagina de login
+        self.session.get(self._config.login_url, timeout=15)
+        
+        api_headers = {
+            'Accept': 'application/json, text/javascript, */*; q=0.01',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+        
+        # Pasul 2: Trimitem CNP/Utilizator
+        payload_pas_1 = {
+            'step': 'cnp',
+            'type': '',
+            'inputCNP': self._config.utilizator
+        }
+        r2 = self.session.post(self._config.api_url, data=payload_pas_1, headers=api_headers, timeout=15)
+        try:
+            res2 = r2.json()
+            if res2.get("code") != "200-OK" or res2.get("next_action") != "pass":
+                msg = res2.get("msgcode", "Eroare la verificarea utilizatorului.")
+                clean_msg = BeautifulSoup(msg, "html.parser").get_text(separator=" ")
+                print(f"❌ Verificare Utilizator Eșuată: {clean_msg.strip()}")
+                return False
+        except Exception as e:
+            print(f"❌ Eroare la citirea răspunsului API (Pas 1): {e}")
+            return False
+            
+        # Pasul 3: Trimitem parola
+        payload_pas_2 = {
+            'step': 'pass',
+            'type': self._config.rola_student,
+            'inputCNP': self._config.utilizator,
+            'inputType': self._config.rola_student,
+            'inputPass': self._config.parola
+        }
+        r3 = self.session.post(self._config.api_url, data=payload_pas_2, headers=api_headers, timeout=15)
+        try:
+            res3 = r3.json()
+            if res3.get("code") == "200-OK" and res3.get("next_action") == "dashboard":
+                return True
+            else:
+                msg = res3.get("msgcode", "Parolă incorectă sau eroare de autentificare.")
+                clean_msg = BeautifulSoup(msg, "html.parser").get_text(separator=" ")
+                print(f"❌ Autentificare Eșuată: {clean_msg.strip()}")
+                return False
+        except Exception as e:
+            print(f"❌ Eroare la citirea răspunsului API (Pas 2): {e}")
+            return False
+
+    def fetch_dashboard(self) -> str:
+        r = self.session.get(self._config.dashboard_url, timeout=15)
+        return r.text

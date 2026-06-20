@@ -1,0 +1,40 @@
+# ── Credentials & secrets ──────────────────────────────────────
+.env
+sessions.json
+
+# ── Runtime-generated data files ───────────────────────────────
+note_salvate.json
+note_log.txt
+debug_page.html
+dashboard_page_raw.html
+dashboard_real.html
+
+# ── Python caches ──────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pycache
+
+# ── Virtual environment ────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Test suite (not needed at runtime) ────────────────────────
+tests/
+
+# ── Development / IDE files ───────────────────────────────────
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+
+# ── Git ────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── Docker itself (avoid recursive context) ───────────────────
+Dockerfile
+.dockerignore

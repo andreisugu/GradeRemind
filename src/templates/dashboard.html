@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GradeRemind - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --card-border: rgba(255, 255, 255, 0.07);
+            --text-color: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 2rem;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border: 1px solid var(--card-border);
+            background: rgba(255, 255, 255, 0.01);
+            border-radius: 20px;
+            backdrop-filter: blur(15px);
+            margin-bottom: 2.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.65rem 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn.secondary {
+            background-color: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            box-shadow: none;
+        }
+
+        .btn.secondary:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn.active {
+            background-color: var(--success);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn.logout {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            box-shadow: none;
+        }
+
+        .btn.logout:hover {
+            background-color: var(--danger);
+            color: white;
+            border-color: var(--danger);
+            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .status-badge {
+            background-color: rgba(255, 255, 255, 0.02);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--success);
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.loading {
+            background-color: var(--warning);
+            box-shadow: 0 0 8px var(--warning);
+            animation: pulse 1.5s infinite;
+        }
+
+        .status-dot.error {
+            background-color: var(--danger);
+            box-shadow: 0 0 8px var(--danger);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        /* Welcome Dashboard Card */
+        .welcome-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.06) 100%);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        .welcome-text h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .welcome-text p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .welcome-stats {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .stat-box {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 18px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 140px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .stat-box:hover {
+            transform: translateY(-3px);
+            border-color: rgba(139, 92, 246, 0.25);
+            background: rgba(255, 255, 255, 0.03);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-val {
+            display: block;
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-weight: 500;
+        }
+
+        .dashboard-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2.5rem;
+        }
+
+        .year-section {
+            animation: fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .year-header {
+            font-size: 1.6rem;
+            font-weight: 600;
+            margin-bottom: 1.25rem;
+            border-left: 4px solid var(--accent);
+            padding-left: 0.75rem;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .semester-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .semester-section {
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .semester-title {
+            font-size: 1.15rem;
+            font-weight: 500;
+            margin-bottom: 1.25rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 0.5rem;
+        }
+
+        .grades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
+        }
+
+        .subject-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            border-radius: 18px;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(8px);
+        }
+
+        .subject-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(139, 92, 246, 0.25);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, rgba(139, 92, 246, 0.02) 100%);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25), 0 0 15px rgba(139, 92, 246, 0.1);
+        }
+
+        .subject-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            max-width: 75%;
+        }
+
+        .subject-name {
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: var(--text-color);
+            word-wrap: break-word;
+        }
+
+        .subject-date {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .badge {
+            font-size: 1.2rem;
+            font-weight: 700;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.3s ease;
+        }
+
+        .badge.grade-10 {
+            background-color: rgba(16, 185, 129, 0.15);
+            border-color: rgba(16, 185, 129, 0.4);
+            color: #10b981;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+        }
+        .badge.grade-high {
+            background-color: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: #3b82f6;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.15);
+        }
+        .badge.grade-mid {
+            background-color: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.4);
+            color: #f59e0b;
+        }
+        .badge.grade-low {
+            background-color: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #ef4444;
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.1);
+        }
+        .badge.grade-text {
+            background-color: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            padding: 0.2rem;
+            text-align: center;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 4rem;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                padding: 1rem;
+            }
+            header {
+                flex-direction: column;
+                gap: 1.5rem;
+                align-items: flex-start;
+            }
+            .controls {
+                width: 100%;
+                flex-wrap: wrap;
+            }
+            .welcome-card {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1.5rem;
+            }
+            .welcome-stats {
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div>
+                <h1>🎓 GradeRemind</h1>
+            </div>
+            <div class="controls">
+                <button id="checkBtn" class="btn">⚡ Verifică manual</button>
+                <button id="notifyBtn" class="btn secondary">🔔 Permite notificări</button>
+                <div class="status-badge">
+                    <span id="statusDot" class="status-dot"></span>
+                    <span id="statusText">Conectat (Cache)</span>
+                </div>
+                <div class="status-badge">
+                    ⏳ Următoarea verificare: <span id="countdownText" style="font-family: monospace; font-weight: 600; color: var(--accent); margin-left: 0.25rem;">--:--</span>
+                </div>
+                <button id="logoutBtn" class="btn logout" onclick="window.location.href='/logout'">🚪 Ieșire</button>
+            </div>
+        </header>
+
+        <!-- Welcome Stats Panel -->
+        <div class="welcome-card">
+            <div class="welcome-text">
+                <h2>Bine ai revenit! 👋</h2>
+                <p>Monitorizezi în timp real notele și activitatea de pe portalul universitar.</p>
+            </div>
+            <div class="welcome-stats">
+                <div class="stat-box">
+                    <span class="stat-val" id="totalSubjects">0</span>
+                    <span class="stat-label">Materii</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val" id="averageGrade">0.00</span>
+                    <span class="stat-label">Medie Generală</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Content -->
+        <main id="dashboardContent">
+            <div class="no-data">Se încarcă notele...</div>
+        </main>
+
+        <footer style="margin-top: 3rem; margin-bottom: 2rem; display: flex; gap: 1rem; justify-content: center; align-items: center; border-top: 1px solid var(--card-border); padding-top: 1.5rem;">
+            <button id="testBrowserBtn" class="btn secondary">📢 Testează Notificare Browser</button>
+            <button id="testDiscordBtn" class="btn secondary">💬 Testează Webhook Discord</button>
+        </footer>
+    </div>
+
+    <script>
+        let lastGrades = null;
+        let hasConnectionError = false;
+        let notificationPermissionGranted = false;
+        let countdownSeconds = 0;
+        let isTimerPaused = false;
+        let activeHoursStr = "";
+
+        const notifyBtn = document.getElementById('notifyBtn');
+        const checkBtn = document.getElementById('checkBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const countdownText = document.getElementById('countdownText');
+        const dashboardContent = document.getElementById('dashboardContent');
+
+        // Countdown timer loop
+        setInterval(() => {
+            if (isTimerPaused) {
+                const mins = Math.floor(countdownSeconds / 60);
+                const secs = countdownSeconds % 60;
+                const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                countdownText.textContent = `⏸️ Pauză (${timeStr})`;
+                return;
+            }
+            if (countdownSeconds > 0) {
+                countdownSeconds--;
+                const mins = Math.floor(countdownSeconds / 60);
+                const secs = countdownSeconds % 60;
+                countdownText.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            } else {
+                countdownText.textContent = "Verificare...";
+            }
+        }, 1000);
+
+        if ('Notification' in window) {
+            if (Notification.permission === 'granted') {
+                updateNotificationButton(true);
+            } else if (Notification.permission === 'denied') {
+                notifyBtn.textContent = '❌ Notificări blocate';
+                notifyBtn.disabled = true;
+            }
+        } else {
+            notifyBtn.style.display = 'none';
+        }
+
+        notifyBtn.addEventListener('click', async () => {
+            if (!('Notification' in window)) return;
+            
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                updateNotificationButton(true);
+                new Notification("GradeRemind", {
+                    body: "Notificările în browser au fost activate cu succes!",
+                    icon: "/favicon.ico"
+                });
+            } else {
+                updateNotificationButton(false);
+            }
+        });
+
+        // Butonul de verificare manuală
+        checkBtn.addEventListener('click', async () => {
+            checkBtn.disabled = true;
+            checkBtn.textContent = '⚡ Se verifică...';
+            statusDot.classList.add('loading');
+            statusText.textContent = 'Verificare manuală...';
+            try {
+                const response = await fetch('/api/check', { method: 'POST' });
+                if (!response.ok) throw new Error('API POST Error');
+                const result = await response.json();
+                if (result.success) {
+                    await fetchGrades();
+                    statusText.textContent = 'Verificare manuală reușită';
+                } else {
+                    alert('O verificare este deja în desfășurare. Vă rugăm să așteptați.');
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Eroare la conexiunea cu serverul pentru verificarea manuală.');
+            } finally {
+                checkBtn.disabled = false;
+                checkBtn.textContent = '⚡ Verifică manual';
+                statusDot.classList.remove('loading');
+            }
+        });
+
+        // Testare notificări browser
+        const testBrowserBtn = document.getElementById('testBrowserBtn');
+        testBrowserBtn.addEventListener('click', () => {
+            if (!('Notification' in window)) {
+                alert('Notificările în browser nu sunt suportate de acest browser.');
+                return;
+            }
+            if (Notification.permission === 'granted') {
+                new Notification("Test Notificare Browser", {
+                    body: "Aceasta este o notificare de test trimisă de pe dashboard-ul GradeRemind!",
+                    icon: "/favicon.ico"
+                });
+            } else {
+                alert('Vă rugăm să activați permisiunile pentru notificări (folosind butonul "Permite notificări").');
+            }
+        });
+
+        // Testare webhook Discord
+        const testDiscordBtn = document.getElementById('testDiscordBtn');
+        testDiscordBtn.addEventListener('click', async () => {
+            testDiscordBtn.disabled = true;
+            testDiscordBtn.textContent = '💬 Se trimite...';
+            try {
+                const response = await fetch('/api/test-discord', { method: 'POST' });
+                if (!response.ok) throw new Error('API Error');
+                const result = await response.json();
+                if (result.success) {
+                    alert('Notificarea de test a fost trimisă cu succes pe Discord!');
+                } else {
+                    alert('Eroare: ' + result.error);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Eroare la conexiunea cu serverul pentru testarea Discord.');
+            } finally {
+                testDiscordBtn.disabled = false;
+                testDiscordBtn.textContent = '💬 Testează Webhook Discord';
+            }
+        });
+
+        function updateNotificationButton(granted) {
+            notificationPermissionGranted = granted;
+            if (granted) {
+                notifyBtn.textContent = '✅ Notificări active';
+                notifyBtn.classList.add('active');
+            } else {
+                notifyBtn.textContent = '🔔 Activează notificări';
+                notifyBtn.classList.remove('active');
+            }
+        }
+
+        function detectAndNotifyChanges(oldData, newData) {
+            if (!oldData || !notificationPermissionGranted) return;
+
+            for (const an in newData) {
+                for (const sem in newData[an]) {
+                    for (const mat in newData[an][sem]) {
+                        const newGradeInfo = newData[an][sem][mat];
+                        let oldGrade = null;
+                        
+                        try {
+                            oldGrade = oldData[an][sem][mat].grade;
+                        } catch(e) {}
+
+                        if (oldGrade === null) {
+                            triggerBrowserNotification(`Materie nouă: ${mat}`, `Nota: ${newGradeInfo.grade}`);
+                        } else if (oldGrade !== newGradeInfo.grade) {
+                            triggerBrowserNotification(`Notă schimbată la ${mat}`, `De la: ${oldGrade} ➔ La: ${newGradeInfo.grade}`);
+                        }
+                    }
+                }
+            }
+        }
+
+        function triggerBrowserNotification(title, body) {
+            if (notificationPermissionGranted) {
+                new Notification(title, { body: body });
+            }
+        }
+
+        function parseExamDate(dateStr) {
+            if (!dateStr || dateStr === "-" || dateStr.trim() === "") return 0;
+            const parts = dateStr.trim().split('-');
+            if (parts.length !== 3) return 0;
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const year = parseInt(parts[2], 10);
+            return new Date(year, month, day).getTime();
+        }
+
+        function getGradeClass(grade) {
+            if (grade === "10") return "grade-10";
+            const val = parseFloat(grade);
+            if (isNaN(val)) return "grade-text";
+            if (val >= 8) return "grade-high";
+            if (val >= 5) return "grade-mid";
+            return "grade-low";
+        }
+
+        function calculateStats(data) {
+            let totalGrades = 0;
+            let countGrades = 0;
+            let totalSubjects = 0;
+            
+            for (const an in data) {
+                for (const sem in data[an]) {
+                    for (const mat in data[an][sem]) {
+                        totalSubjects++;
+                        const gradeVal = parseFloat(data[an][sem][mat].grade);
+                        if (!isNaN(gradeVal)) {
+                            totalGrades += gradeVal;
+                            countGrades++;
+                        }
+                    }
+                }
+            }
+            
+            const average = countGrades > 0 ? (totalGrades / countGrades).toFixed(2) : "0.00";
+            document.getElementById('totalSubjects').textContent = totalSubjects;
+            document.getElementById('averageGrade').textContent = average;
+        }
+
+        function renderDashboard(data) {
+            if (Object.keys(data).length === 0) {
+                dashboardContent.innerHTML = '<div class="no-data">Nu există note în istoric. Așteaptă prima rulare.</div>';
+                return;
+            }
+
+            calculateStats(data);
+
+            let html = '<div class="dashboard-grid">';
+            const ani = Object.keys(data).sort().reverse();
+
+            for (const an of ani) {
+                html += `
+                    <section class="year-section">
+                        <h2 class="year-header">${an}</h2>
+                        <div class="semester-container">
+                `;
+
+                const semestre = Object.keys(data[an]).sort().reverse();
+
+                for (const sem of semestre) {
+                    html += `
+                        <div class="semester-section">
+                            <h3 class="semester-title">${sem}</h3>
+                            <div class="grades-grid">
+                    `;
+
+                    const materii = Object.keys(data[an][sem]).sort((a, b) => {
+                        const timeA = data[an][sem][a].last_modified || 0;
+                        const timeB = data[an][sem][b].last_modified || 0;
+                        if (Math.abs(timeA - timeB) > 1.0) {
+                            return timeB - timeA;
+                        }
+                        const dateA = parseExamDate(data[an][sem][a].date);
+                        const dateB = parseExamDate(data[an][sem][b].date);
+                        if (dateB !== dateA) {
+                            return dateB - dateA;
+                        }
+                        return a.localeCompare(b);
+                    });
+
+                    for (const mat of materii) {
+                        const info = data[an][sem][mat];
+                        const dateText = info.date ? `📅 ${info.date}` : '📅 -';
+                        const gradeClass = getGradeClass(info.grade);
+
+                        html += `
+                            <div class="subject-card">
+                                <div class="subject-info">
+                                    <span class="subject-name">${mat}</span>
+                                    <span class="subject-date">${dateText}</span>
+                                </div>
+                                <span class="badge ${gradeClass}">${info.grade}</span>
+                            </div>
+                        `;
+                    }
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </section>
+                `;
+            }
+
+            html += '</div>';
+            dashboardContent.innerHTML = html;
+        }
+
+        async function fetchGrades() {
+            statusDot.classList.add('loading');
+            try {
+                const response = await fetch('/api/grades');
+                if (response.status === 401 || response.redirected) {
+                    window.location.reload();
+                    return;
+                }
+                if (!response.ok) throw new Error('API Error');
+                const data = await response.json();
+                
+                if (hasConnectionError) {
+                    hasConnectionError = false;
+                    window.location.reload();
+                    return;
+                }
+                
+                if (data.next_check_in !== undefined) {
+                    countdownSeconds = data.next_check_in;
+                }
+                if (data.is_paused !== undefined) {
+                    isTimerPaused = data.is_paused;
+                }
+                if (data.active_hours_str !== undefined) {
+                    activeHoursStr = data.active_hours_str || "";
+                }
+                
+                const gradesData = data.grades || {};
+                
+                const dataChanged = lastGrades === null || JSON.stringify(lastGrades) !== JSON.stringify(gradesData);
+                
+                if (lastGrades !== null) {
+                    detectAndNotifyChanges(lastGrades, gradesData);
+                }
+                
+                lastGrades = gradesData;
+                if (dataChanged) {
+                    renderDashboard(gradesData);
+                }
+                
+                statusText.textContent = 'Conectat (Cache)';
+                statusDot.classList.remove('error');
+            } catch (error) {
+                console.error(error);
+                statusText.textContent = 'Eroare conexiune';
+                statusDot.classList.add('error');
+                hasConnectionError = true;
+            } finally {
+                statusDot.classList.remove('loading');
+            }
+        }
+
+        fetchGrades();
+        setInterval(fetchGrades, 10000);
+    </script>
+</body>
+</html>
