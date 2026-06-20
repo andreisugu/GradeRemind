@@ -14,9 +14,9 @@
 - [Utilizare](#-utilizare)
 - [Docker](#-docker)
 - [Pterodactyl / Pelican Panel](#-pterodactyl--pelican-panel)
-- [Structura proiectului](#-structura-proiectului)
-- [Arhitectura SOLID](#-arhitectura-solid)
+- [Arhitectură](#-arhitectură)
 - [Dashboard Web](#-dashboard-web)
+- [Rularea testelor](#-rularea-testelor)
 - [Contribuții](#-contribuții)
 
 ---
@@ -321,69 +321,16 @@ Panelul detectează că aplicația e pornită după ce apare linia `Serverul Web
 
 ---
 
-## 📁 Structura proiectului
+## 🏛️ Arhitectură
 
-```
-GradeRemind/
-├── main.py                     # Entry point — inițializează și pornește aplicația
-├── .env                        # Configurare locală (nu se commitează!)
-├── .env.example                # Template configurare
-├── requirements.txt
-├── note_salvate.json           # Istoricul notelor (auto-generat)
-├── note_log.txt                # Jurnalul verificărilor (auto-generat)
-├── sessions.json               # Sesiuni web active (auto-generat)
-│
-├── src/
-│   ├── __init__.py
-│   ├── config.py               # Citire și validare variabile .env (Config)
-│   ├── interfaces.py           # Contracte abstracte ABC (DIP / ISP)
-│   ├── services.py             # Implementări concrete: scraper, storage, notificări
-│   ├── monitor.py              # Orchestrator GradeMonitor (logica de business)
-│   ├── web_server.py           # Server HTTP multi-threaded + request handler
-│   └── templates/
-│       ├── dashboard.html      # UI dashboard cu statistici și cronometru
-│       └── login.html          # Pagina de autentificare
-│
-└── tests/
-    └── test_components.py      # Teste unitare (unittest + mock)
-```
+GradeRemind a fost construit cu respectarea principiilor **SOLID** și următoarele foi de parcurs:
 
----
+- **Structura proiectului** — modul/responsabilități
+- **Arhitectura SOLID** — principii de design și extensibilitate
+- **Data Flow** — cum se mișcă datele prin aplicație
+- **Testabilitate și Thread Safety** — paralelism și testare izolată
 
-## 🏛️ Arhitectura SOLID
-
-Proiectul a fost construit cu respectarea principiilor **SOLID**:
-
-### S — Single Responsibility
-Fiecare modul/clasă are o singură responsabilitate clară:
-- `Config` → citește setările
-- `GradePortalWebClient` → gestionează sesiunea HTTP
-- `GradePortalHtmlParser` → parsează HTML-ul cu BeautifulSoup
-- `JsonFileGradeStorage` → persistă/citește istoricul JSON
-- `GradeMonitor` → orchestrează logica de business
-- `BuiltInGradeWebServer` → servește interfața web
-
-### O — Open/Closed
-Adăugarea unui nou canal de notificare (e.g. Telegram, Email) nu necesită modificarea codului existent — se implementează interfața `INotificationProvider` și se înregistrează în `CompositeNotificationProvider`.
-
-### L — Liskov Substitution
-Orice implementare concretă (ex. `DiscordNotificationProvider`) poate înlocui tipul abstract `INotificationProvider` fără a afecta comportamentul aplicației.
-
-### I — Interface Segregation
-Interfețele sunt mici și focusate: `IGradeParser`, `IGradeStorage`, `IGradeLogger`, `IWebClient`, `IWebServer`, `INotificationProvider` — fiecare expune strict contractul necesar.
-
-### D — Dependency Inversion
-`GradeMonitor` primește toate dependențele prin constructor ca interfețe abstracte, fără a cunoaște implementările concrete. Testarea prin mock-uri este trivială.
-
-```python
-monitor = GradeMonitor(
-    web_client=GradePortalWebClient(config),   # IWebClient
-    parser=GradePortalHtmlParser(),             # IGradeParser
-    storage=JsonFileGradeStorage(...),    # IGradeStorage
-    logger=TextFileGradeLogger(...),      # IGradeLogger
-    notifier=composite_notifier           # INotificationProvider
-)
-```
+Pentru detalii complete, consultă [**ARCHITECTURE.md**](ARCHITECTURE.md).
 
 ---
 
