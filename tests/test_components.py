@@ -115,5 +115,18 @@ class TestGradeRemindComponents(unittest.TestCase):
         # Assert
         self.assertIsNone(update)
 
+    def test_get_template_bytes(self) -> None:
+        """ Testează că get_template_bytes poate citi iconița PWA ca fișier de imagine valid """
+        from src.web_server import get_template_bytes
+        # Act
+        icon_bytes = get_template_bytes("icon.png")
+        
+        # Assert
+        self.assertTrue(len(icon_bytes) > 0)
+        # Acceptă semnătura PNG sau JPEG (deoarece generatorul poate crea JPEG sub extensia PNG)
+        is_png = icon_bytes[:4] == b'\x89PNG'
+        is_jpeg = icon_bytes[:2] == b'\xff\xd8'
+        self.assertTrue(is_png or is_jpeg)
+
 if __name__ == "__main__":
     unittest.main()

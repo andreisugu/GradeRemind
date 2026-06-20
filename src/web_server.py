@@ -19,6 +19,11 @@ def get_template(name: str) -> str:
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
+def get_template_bytes(name: str) -> bytes:
+    path = os.path.join(BASE_DIR, "templates", name)
+    with open(path, "rb") as f:
+        return f.read()
+
 try:
     LOGIN_HTML = get_template("login.html")
 except Exception as e:
@@ -82,6 +87,42 @@ class GradeHTTPRequestHandler(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self) -> None:
+        if self.path == '/manifest.json':
+            try:
+                content = get_template("manifest.json")
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/manifest+json; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(content.encode('utf-8'))
+            except Exception:
+                self.send_response(404)
+                self.end_headers()
+            return
+
+        if self.path == '/sw.js':
+            try:
+                content = get_template("sw.js")
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/javascript; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(content.encode('utf-8'))
+            except Exception:
+                self.send_response(404)
+                self.end_headers()
+            return
+
+        if self.path in ['/icon.png', '/favicon.ico']:
+            try:
+                content = get_template_bytes("icon.png")
+                self.send_response(200)
+                self.send_header('Content-Type', 'image/png')
+                self.end_headers()
+                self.wfile.write(content)
+            except Exception:
+                self.send_response(404)
+                self.end_headers()
+            return
+
         if self.path == '/login':
             if self.is_authenticated():
                 self.send_response(302)

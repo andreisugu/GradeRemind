@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GradeRemind - Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icon.png">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <meta name="theme-color" content="#0b0f19">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -783,6 +787,9 @@
                 if (!response.ok) throw new Error('API Error');
                 const data = await response.json();
                 
+                // Cache successfully fetched data locally
+                localStorage.setItem('cached_grades_data', JSON.stringify(data));
+                
                 if (hasConnectionError) {
                     hasConnectionError = false;
                     window.location.reload();
@@ -812,11 +819,40 @@
                     renderDashboard(gradesData);
                 }
                 
-                statusText.textContent = 'Conectat (Cache)';
+                statusText.textContent = 'Conectat';
                 statusDot.classList.remove('error');
             } catch (error) {
                 console.error(error);
-                statusText.textContent = 'Eroare conexiune';
+                
+                // Fallback to locally cached data
+                const cachedDataStr = localStorage.getItem('cached_grades_data');
+                if (cachedDataStr) {
+                    try {
+                        const data = JSON.parse(cachedDataStr);
+                        if (data.next_check_in !== undefined) {
+                            countdownSeconds = data.next_check_in;
+                        }
+                        if (data.is_paused !== undefined) {
+                            isTimerPaused = data.is_paused;
+                        }
+                        if (data.active_hours_str !== undefined) {
+                            activeHoursStr = data.active_hours_str || "";
+                        }
+                        
+                        const gradesData = data.grades || {};
+                        const dataChanged = lastGrades === null || JSON.stringify(lastGrades) !== JSON.stringify(gradesData);
+                        
+                        lastGrades = gradesData;
+                        if (dataChanged) {
+                            renderDashboard(gradesData);
+                        }
+                        statusText.textContent = 'Deconectat (Stocare Locală)';
+                    } catch (e) {
+                        statusText.textContent = 'Deconectat (Fără Cache)';
+                    }
+                } else {
+                    statusText.textContent = 'Deconectat (Fără Cache)';
+                }
                 statusDot.classList.add('error');
                 hasConnectionError = true;
             } finally {
@@ -824,8 +860,46 @@
             }
         }
 
+        function loadCachedGrades() {
+            const cachedDataStr = localStorage.getItem('cached_grades_data');
+            if (cachedDataStr) {
+                try {
+                    const data = JSON.parse(cachedDataStr);
+                    if (data.next_check_in !== undefined) {
+                        countdownSeconds = data.next_check_in;
+                    }
+                    if (data.is_paused !== undefined) {
+                        isTimerPaused = data.is_paused;
+                    }
+                    if (data.active_hours_str !== undefined) {
+                        activeHoursStr = data.active_hours_str || "";
+                    }
+                    
+                    const gradesData = data.grades || {};
+                    lastGrades = gradesData;
+                    renderDashboard(gradesData);
+                    statusText.textContent = 'Offline (Cache Local)';
+                    statusDot.classList.add('error');
+                } catch (e) {
+                    console.error("Eroare la citirea cache-ului local:", e);
+                }
+            }
+        }
+
+        // Încarcă datele offline din cache-ul local prima dată (Instant Load)
+        loadCachedGrades();
+
         fetchGrades();
         setInterval(fetchGrades, 10000);
+
+        // Register Service Worker for PWA / offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
