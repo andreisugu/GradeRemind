@@ -38,6 +38,29 @@ def main() -> None:
     
     # Instanțiere dependencies
     config = Config()
+    
+    # Validare configurare
+    errors, warnings = config.validate()
+    
+    if errors:
+        print("\n" + "="*70)
+        print("❌ ERORI DE CONFIGURARE — STARTUP OPRIT")
+        print("="*70)
+        for error in errors:
+            print(error)
+        print("\n📝 Rezolvă erorile de mai sus în fișierul .env și relanșează.")
+        print("="*70 + "\n")
+        return
+    
+    if warnings:
+        print("\n" + "-"*70)
+        print("⚠️  AVERTISMENTE DE CONFIGURARE")
+        print("-"*70)
+        for warning in warnings:
+            print(warning)
+        print("-"*70 + "\n")
+    
+    # Continuă cu setup-ul normal dacă nu sunt erori
     web_client = GradePortalWebClient(config)
     parser = GradePortalHtmlParser()
     storage = JsonFileGradeStorage(config.note_file)

@@ -66,3 +66,65 @@ class Config:
             "PORTAL_USER_AGENT",
             "Mozilla/5.0 (compatible; GradeRemind/1.0)"
         )
+    
+    def validate(self) -> Tuple[list, list]:
+        """
+        Validează configurația și returnează lista de erori și avertismente.
+        
+        Returns:
+            Tuple[list, list] — (errori, avertismente)
+        """
+        errors = []
+        warnings = []
+        
+        # Validări CRITICE
+        if self.utilizator.startswith("introdu_aici"):
+            errors.append("❌ PORTAL_UTILIZATOR nu este setat. Setează email/CNP-ul tău în .env")
+        
+        if self.parola.startswith("introdu_aici"):
+            errors.append("❌ PORTAL_PAROLA nu este setată. Setează parola în .env")
+        
+        if self.base_url.startswith("https://your-portal"):
+            errors.append("❌ PORTAL_BASE_URL nu este setat sau e generic. Setează URL-ul real al portalului")
+        
+        if not self.base_url.startswith(("http://", "https://")):
+            errors.append(f"❌ PORTAL_BASE_URL trebuie să înceapă cu http:// sau https://. Găsit: {self.base_url}")
+        
+        # Validări pentru intervale
+        if self.min_verification_interval < 60:
+            errors.append(f"❌ PORTAL_MIN_VERIFICATION_INTERVAL trebuie să fie >= 60 secunde. Găsit: {self.min_verification_interval}s")
+        
+        if self.max_verification_interval < 60:
+            errors.append(f"❌ PORTAL_MAX_VERIFICATION_INTERVAL trebuie să fie >= 60 secunde. Găsit: {self.max_verification_interval}s")
+        
+        if self.min_verification_interval > self.max_verification_interval:
+            errors.append(f"❌ PORTAL_MIN_VERIFICATION_INTERVAL ({self.min_verification_interval}s) > MAX ({self.max_verification_interval}s)")
+        
+        # Validări port
+        if not (1024 <= self.port <= 65535):
+            errors.append(f"❌ PORTAL_PORT trebuie să fie între 1024-65535. Găsit: {self.port}")
+        
+        # Validări ore active
+        if self.active_hours:
+            start_h, end_h = self.active_hours
+            if not (0 <= start_h <= 23):
+                errors.append(f"❌ Ora de start (PORTAL_ACTIVE_HOURS) trebuie să fie 0-23. Găsit: {start_h}")
+            if not (0 <= end_h <= 23):
+                errors.append(f"❌ Ora de end (PORTAL_ACTIVE_HOURS) trebuie să fie 0-23. Găsit: {end_h}")
+        
+        # AVERTISMENTE (nu blochează, dar informează)
+        if self.user_agent.startswith("Mozilla/5.0 (compatible; GradeRemind"):
+            warnings.append(f"⚠️  User-Agent-ul este generic default. Recomandare: setează PORTAL_USER_AGENT cu UA real din browser (F12 → Network → Headers) pentru a pare trafic normal.")
+        
+        if not self.discord_webhook:
+            warnings.append("ℹ️  PORTAL_DISCORD_WEBHOOK nu este setat. Notificări Discord sunt dezactivate (opcional).")
+        
+        if self.initial_check:
+            warnings.append("ℹ️  PORTAL_INITIAL_CHECK=true — va rula o verificare imediat la startup.")
+        
+        if self.active_hours:
+            start_h, end_h = self.active_hours
+            if start_h == end_h:
+                warnings.append(f"⚠️  PORTAL_ACTIVE_HOURS are start == end ({start_h}:00). Monitorizare efectiv DEZACTIVATĂ.")
+        
+        return errors, warnings
