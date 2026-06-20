@@ -290,7 +290,7 @@ Dacă rulezi un panou de server games / hosting, poți instala GradeRemind direc
 **Pterodactyl:**
 1. Admin Panel → **Nests** → alege sau creează un Nest (e.g. "Monitorizare")
 2. Click **Import Egg** → încarcă `egg-graderemind-pterodactyl.json`
-3. Setează imaginea Docker: `ghcr.io/pterodactyl/yolks:python_3.12`
+3. Setează imaginea Docker: `ghcr.io/parkervcp/yolks:python_3.12`
 4. Creează un server nou cu acest Egg, configurează variabilele, rulează **Reinstall**
 
 **Pelican:**
